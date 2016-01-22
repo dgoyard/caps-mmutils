@@ -11,6 +11,7 @@
 import os
 import gzip
 import shutil
+import numpy
 
 
 def element_to_list(element):
@@ -45,6 +46,26 @@ def list_to_element(listobj, force=False):
 
     element = listobj[0]
     return element
+
+
+def normalize_array(filepath):
+    """
+        Get a numpy array from a file and normalize column by column
+
+    <unit>
+        <input name="filepath" type="File" desc="the input file containing 
+            the numpy array"/>
+        <output name="outfile" type="File" desc="the output file with normalized
+            array"/>
+    </unit>
+    """
+    # load input file
+    array = numpy.loadtxt(filepath)
+    array = (array - array.mean(axis=0)) / array.std(axis=0)
+    outfile = filepath
+    numpy.savetxt(outfile, array, fmt="%5.8f")
+
+    return outfile
 
 
 def ungzip_file(fname, prefix="u", output_directory=None):
@@ -153,12 +174,14 @@ def gzip_file(fname, prefix="g", output_directory=None,
     return gzipfname
 
 
-def rename_file(input_filepath, output_filepath):
+def rename_file(input_filepath, output_filepath, overwrite=False):
     """ Rename a file (same loc)
 
     <unit>
         <input name="input_filepath" type="File" desc="an input file
             to rename."/>
+        <input name="overwrite" type="Bool" desc="Overwrite of not
+            if the file already exists (optional, default=False)"/>
         <input name="output_filepath" type="String" desc="the output
             filepath."/>
         <output name="output_file" type="File" desc="the renamed file."/>
@@ -166,7 +189,10 @@ def rename_file(input_filepath, output_filepath):
     """
 
     if os.path.isfile(output_filepath):
-        raise Exception("Output file exist !")
+        if overwrite:
+            os.remove(output_filepath)
+        else:
+            raise Exception("Output file exist !")
     # get output folder
     shutil.move(input_filepath, output_filepath)
 
