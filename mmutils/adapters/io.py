@@ -12,6 +12,7 @@ import os
 import gzip
 import shutil
 import numpy
+import nibabel
 
 
 def element_to_list(element):
@@ -53,7 +54,7 @@ def normalize_array(filepath):
         Get a numpy array from a file and normalize column by column
 
     <unit>
-        <input name="filepath" type="File" desc="the input file containing 
+        <input name="filepath" type="File" desc="the input file containing
             the numpy array"/>
         <output name="outfile" type="File" desc="the output file with normalized
             array"/>
@@ -65,6 +66,26 @@ def normalize_array(filepath):
     outfile = filepath
     numpy.savetxt(outfile, array, fmt="%5.8f")
 
+    return outfile
+
+
+def crop_4dvolume(filepath, n):
+    """
+        Remove the n first volumes of a 4D nifti file
+    <unit>
+        <input name="filepath" type="File" desc="the input nifti file to crop"/>
+        <input name="n" type="Int" desc="The number of 3Dvolumes to remove"/>
+        <output name="outfile" type="File" desc="the output cropped file array"/>
+    </unit>
+    """
+    print filepath
+    in_nifti = nibabel.load(filepath)
+    in_data = in_nifti.get_data()[:, :, :, n:]
+
+    out_nifti = nibabel.Nifti1Image(in_data, affine=in_nifti.get_affine())
+    outfile = os.path.join(os.path.dirname(filepath),
+                           'd{}'.format(os.path.basename(filepath)))
+    nibabel.save(out_nifti, outfile)
     return outfile
 
 
@@ -117,6 +138,30 @@ def ungzip_file(fname, prefix="u", output_directory=None):
         ungzipfname = fname
 
     return ungzipfname
+
+
+def ungzip_list_files(fnames, prefix="u", output_directory=None):
+    """ Copy and ungzip the input files.
+
+    <unit>
+        <input name="fnames" type="List" content="File"
+            desc="an input file to ungzip."/>
+        <input name="prefix" type="String" desc="the prefix of the result
+            files."/>
+        <input name="output_directory" type="Directory" desc="the output
+            directory where ungzip file is saved."/>
+        <output name="ungzipfnames" type="List" content="File"
+            desc="the returned ungzip files."/>
+    </unit>
+    """
+    ungzipfnames = []
+    for _file in fnames:
+        ungzipfnames.append(
+            ungzip_file(_file,
+                        prefix=prefix,
+                        output_directory=output_directory))
+
+    return ungzipfnames
 
 
 def gzip_file(fname, prefix="g", output_directory=None,
@@ -240,5 +285,9 @@ def noprocess_switch(input_value):
     """
 
     output_value = input_value
+
+    print "---------------------"
+    print input_value
+    print "---------------------"
 
     return output_value
